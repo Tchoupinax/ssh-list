@@ -55,7 +55,7 @@ var RootCmd = &cobra.Command{
 		var userMaxLength = 0
 
 		title := color.New(color.Bold, color.FgWhite).SprintFunc()
-		fmt.Println(title("List of SSH services :"))
+		fmt.Println(title("List of SSH services22 :"))
 		fmt.Println()
 
 		for _, block := range s {
