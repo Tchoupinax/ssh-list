@@ -2,6 +2,9 @@
 
 ## Usage of brew repository
 
+brew tap tchoupinax/ssh-list
+brew install tchoupinax/ssh-list
+
 ```
 brew tap adds more repos to the list of formulae that brew tracks, updates, and installs from
 

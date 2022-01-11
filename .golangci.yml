@@ -1,0 +1,65 @@
+linters-settings:
+  lll:
+    line-length: 200
+  gocyclo:
+    min-complexity: 20
+
+linters:
+  enable:
+    - govet
+    - errcheck
+    - staticcheck
+    - unused
+    - gosimple
+    - structcheck
+    - varcheck
+    - ineffassign
+    - deadcode
+    - typecheck
+    - bodyclose
+    - revive
+    - stylecheck
+    - gosec
+    - unconvert
+    - dupl
+    - goconst
+    - gocyclo
+    - gocognit
+    - gofmt
+    - goimports
+    - depguard
+    - misspell
+    - lll
+    - unparam
+    - dogsled
+    # - funlen
+    - gochecknoinits
+    # - gocritic
+    # - godox
+    - nakedret
+    - prealloc
+    - whitespace
+    # - wsl
+    - exportloopref
+    # - golint
+    - gochecknoglobals
+  disable:
+    - noctx
+    - scopelint
+    - errorlint
+
+  disable-all: false
+  presets:
+    - bugs
+    - unused
+  fast: false
+
+issues:
+  exclude-rules:
+    # Exclude some linters from running on tests files.
+    - path: _test\.go
+      linters:
+        - gochecknoglobals
+        - dupl
+  include:
+    # - EXC0002
