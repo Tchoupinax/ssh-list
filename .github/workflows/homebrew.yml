@@ -1,0 +1,19 @@
+name: Homebrew update
+
+on:
+  release:
+    types: [created, published, released]
+
+jobs:
+  formula:
+    name: Update Homebrew formula
+    runs-on: ubuntu-latest
+    steps:
+      - name: Update the Homebrew formula with latest release
+        uses: NSHipster/update-homebrew-formula-action@main
+        with:
+          repository: tchoupinax/ssh-list
+          tap: tchoupinax/homebrew-ssh-list
+          formula: ssh-list.rb
+        env:
+          GH_PERSONAL_ACCESS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
