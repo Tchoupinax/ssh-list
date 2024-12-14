@@ -63,6 +63,7 @@ func processConfigsFromFile(
 	identityFileMaxLength *int,
 ) []Config {
 	fmt.Println("processConfigsFromFile")
+	// nolint: prealloc // Dynamic size is unknown
 	var configs []Config
 
 	s := strings.Split(sshContentFile, "Host ")
