@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
-	"strings"
 
 	"github.com/fatih/color"
 	homedir "github.com/mitchellh/go-homedir"
@@ -43,64 +43,43 @@ var RootCmd = &cobra.Command{
 	Short: "An example of cobra",
 	Long:  `List your SSH configurations easily`,
 	Run: func(cmd *cobra.Command, args []string) {
-		home, err := homedir.Dir()
-		check(err)
-		dat, err := os.ReadFile(fmt.Sprintf("%s%s", home, "/.ssh/config"))
-		check(err)
-		s := strings.Split(string(dat), "Host ")
-
 		var configs []Config
 		var aliasMaxLength = 0
 		var hostnameMaxLength = 0
 		var userMaxLength = 0
 		var identityFileMaxLength = 0
 
+		var content = extractSSHConfigFile()
+
+		configs = append(
+			configs,
+			processConfigsFromFile(
+				content,
+				&aliasMaxLength,
+				&hostnameMaxLength,
+				&userMaxLength,
+				&identityFileMaxLength,
+			)...,
+		)
+
+		configs = append(
+			configs,
+			extractDynamicFile(
+				content,
+				&aliasMaxLength,
+				&hostnameMaxLength,
+				&userMaxLength,
+				&identityFileMaxLength,
+			)...,
+		)
+
+		sort.Slice(configs, func(i, j int) bool {
+			return configs[i].Alias < configs[j].Alias
+		})
+
 		title := color.New(color.Bold, color.FgWhite).SprintFunc()
 		fmt.Println(title("List of SSH services :"))
 		fmt.Println()
-
-		for _, block := range s {
-			config := Config{}
-
-			for _, line := range strings.Split(block, "\n") {
-				if strings.Contains(line, "port") {
-					config.Port, _ = strconv.ParseInt(strings.Trim(line, " "), 10, 64)
-				}
-
-				if strings.Contains(line, "User") {
-					config.User = strings.TrimSpace(strings.Replace(line, "User", "", -1))
-					if len(config.User) > userMaxLength {
-						userMaxLength = len(config.User)
-					}
-				}
-
-				if strings.Contains(line, "IdentityFile") {
-					if !strings.Contains(line, "#") {
-						config.IdentityFile = strings.TrimSpace(strings.Replace(line, "IdentityFile", "", -1))
-					} else {
-						config.IdentityFile = "❌"
-					}
-
-					if len(config.IdentityFile) > identityFileMaxLength {
-						identityFileMaxLength = len(config.IdentityFile)
-					}
-				}
-
-				if strings.Contains(line, "HostName") {
-					config.Hostname = strings.TrimSpace(strings.Replace(line, "HostName", "", -1))
-					if len(config.Hostname) > hostnameMaxLength {
-						hostnameMaxLength = len(config.Hostname)
-					}
-				}
-			}
-
-			config.Alias = strings.Split(block, "\n")[0]
-			if len(config.Alias) > aliasMaxLength && !strings.HasPrefix(config.Alias, "#") {
-				aliasMaxLength = len(config.Alias)
-			}
-
-			configs = append(configs, config)
-		}
 
 		for i := 0; i < len(configs); i++ {
 			if i == 0 {
