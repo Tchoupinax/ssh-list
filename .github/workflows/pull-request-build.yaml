@@ -33,4 +33,4 @@ jobs:
         uses: goreleaser/goreleaser-action@v6
         with:
           version: "~> v2"
-          args: "build --clean"
+          args: "build --clean --snapshot"
