@@ -1,0 +1,7 @@
+version: 2
+
+project_name: ssh-list
+
+builds:
+  - ldflags:
+      - -s -w -X ssh-list/cmd.version={{.Version}} -X ssh-list/cmd.commit={{.FullCommit}} -X ssh-list/cmd.buildDate={{.Date}}
