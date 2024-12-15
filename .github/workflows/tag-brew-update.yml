@@ -1,5 +1,9 @@
+name: Publish Brew release
+
 on:
-  pull_request:
+  push:
+    tags:
+      - "*"
 
 jobs:
   homebrew:
@@ -16,6 +20,5 @@ jobs:
           commit-message: "feat({{formulaName}}): publish version {{version}} 🤖"
           formula-path: ssh-list.rb
           homebrew-tap: Tchoupinax/homebrew-brew
-          tag-name: v0.3.0
         env:
           COMMITTER_TOKEN: ${{ secrets.COMMITTER_TOKEN }}
