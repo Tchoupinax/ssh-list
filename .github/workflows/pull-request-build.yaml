@@ -3,6 +3,7 @@ name: Build binary
 on:
   pull_request:
     paths:
+      - ".goreleaser.yml"
       - "api/**"
       - "cmd/main.go"
       - "go.mod"
