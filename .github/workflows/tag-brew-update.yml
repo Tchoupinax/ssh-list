@@ -19,6 +19,7 @@ jobs:
 
       - uses: mislav/bump-homebrew-formula-action@v3
         with:
+          tag: v0.3.0
           homebrew-tap: Tchoupinax/homebrew-brew
           commit-message: "feat({{formulaName}}): publish version {{version}} 🤖"
         env:
