@@ -3,10 +3,12 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"os/signal"
+	"regexp"
 	"sort"
 	"strconv"
+	"syscall"
 
-	"github.com/fatih/color"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -38,11 +40,17 @@ type Config struct {
 	IdentityFile string
 }
 
+var sshConnectionCreated bool
+
 var RootCmd = &cobra.Command{
 	Use:   "ssh-list",
 	Short: "An example of cobra",
 	Long:  `List your SSH configurations easily`,
+	Args:  cobra.RangeArgs(0, 1),
 	Run: func(cmd *cobra.Command, args []string) {
+		sshConnectionCreated = false
+		defer measurePerformance(&sshConnectionCreated)()
+
 		var configs []Config
 		var aliasMaxLength = 0
 		var hostnameMaxLength = 0
@@ -77,36 +85,37 @@ var RootCmd = &cobra.Command{
 			return configs[i].Alias < configs[j].Alias
 		})
 
-		title := color.New(color.Bold, color.FgWhite).SprintFunc()
-		fmt.Println(title("List of SSH services :"))
-		fmt.Println()
+		if len(args) > 0 {
+			firstArg := args[0]
+			if firstArg != "" {
+				// Try to detect if it's an integer
+				index, err := strconv.Atoi(firstArg)
+				if err != nil {
+					// Name Case
+					configs = filterByRegex(configs, firstArg)
 
-		for i := 0; i < len(configs); i++ {
-			if i == 0 {
-				continue
+				} else {
+					sshConnectionCreated = true
+					createSSH(configs[index])
+				}
 			}
-
-			yellow := color.New(color.Bold, color.FgHiGreen).SprintFunc()
-			red := color.New(color.FgRed).SprintFunc()
-			cyan := color.New(color.FgCyan).SprintFunc()
-			pink := color.New(color.FgHiMagenta).SprintFunc()
-
-			index := strconv.Itoa(i)
-			if i < 10 {
-				index = fmt.Sprintf("%s%d", " ", i)
-			}
-
-			fmt.Printf("%s %s %s %s %s \n",
-				index,
-				yellow(addSpaceToEnd(configs[i].Alias, aliasMaxLength+1)),
-				red(addSpaceToEnd(configs[i].User, userMaxLength+1)),
-				cyan(addSpaceToEnd(configs[i].IdentityFile, identityFileMaxLength+1)),
-				pink(configs[i].Hostname))
 		}
 
-		fmt.Println("")
+		// If the length is 1, auto activate
+		if len(configs) == 1 {
+			sshConnectionCreated = true
+			createSSH(configs[0])
+		}
 
-		os.Exit(0)
+		if !sshConnectionCreated {
+			display(
+				configs,
+				&aliasMaxLength,
+				&hostnameMaxLength,
+				&userMaxLength,
+				&identityFileMaxLength,
+			)
+		}
 	},
 }
 
@@ -150,4 +159,42 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
+}
+
+func filterByRegex(configs []Config, name string) []Config {
+	// Compile the regex pattern
+	re, err := regexp.Compile(".*" + name + ".*")
+	if err != nil {
+		return []Config{}
+	}
+
+	var filtered []Config
+	for _, config := range configs {
+		for range re.FindAllString(config.Alias, -1) {
+			filtered = append(filtered, config)
+		}
+	}
+	return filtered
+}
+
+func handleSig() {
+	// Create a channel to receive OS signals
+	signalChan := make(chan os.Signal, 1)
+
+	// Notify the channel when a SIGINT (Ctrl+C) is received
+	signal.Notify(signalChan, syscall.SIGINT)
+
+	// Create a channel to signal when the program should exit
+	done := make(chan bool, 1)
+
+	// Goroutine to handle the signal
+	go func() {
+		<-signalChan // Wait for the SIGINT signal
+		fmt.Println("\nCtrl+C pressed. Cleaning up and exiting...")
+		done <- true
+	}()
+
+	fmt.Println("Press Ctrl+C to exit.")
+	<-done // Wait until the signal handling goroutine sends the exit signal
+	fmt.Println("Goodbye!")
 }
