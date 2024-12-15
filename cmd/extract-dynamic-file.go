@@ -62,12 +62,10 @@ func processConfigsFromFile(
 	userMaxLength *int,
 	identityFileMaxLength *int,
 ) []Config {
-	fmt.Println("processConfigsFromFile")
 	// nolint: prealloc // Dynamic size is unknown
 	var configs []Config
 
 	s := strings.Split(sshContentFile, "Host ")
-	fmt.Println(len(s))
 
 	for _, block := range s {
 		if block == "" {
