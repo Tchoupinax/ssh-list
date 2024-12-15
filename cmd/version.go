@@ -8,8 +8,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const Version string = "0.3.2"
-const BuildDate string = "2024-12-15"
+var (
+	version   string
+	buildDate string
+	commit    string
+)
 
 func init() {
 	var versionCmd = &cobra.Command{
@@ -23,8 +26,9 @@ func init() {
 			fmt.Println()
 			fmt.Println(bold("⚡️ SSH List"))
 			fmt.Println()
-			fmt.Println("build date: ", bold(BuildDate))
-			fmt.Println("version:         ", bold(Version))
+			fmt.Println("build date: ", bold(version))
+			fmt.Println("version:         ", bold(buildDate))
+			fmt.Println("commit:         ", bold(commit))
 			fmt.Println()
 			fmt.Println(italic("Need help?"))
 			fmt.Println(italic("https://github.com/Tchoupinax/ssh-list/issues"))
