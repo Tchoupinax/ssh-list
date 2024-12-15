@@ -9,8 +9,6 @@ jobs:
   homebrew:
     name: Bump Homebrew formula
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
 
     steps:
       # Documentation here
