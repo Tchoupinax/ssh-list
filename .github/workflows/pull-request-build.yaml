@@ -3,29 +3,32 @@ name: Build binary
 on:
   pull_request:
     paths:
-    - "api/**"
-    - "cmd/main.go"
-    - "graphql/**"
-    - "internal/**"
+      - "api/**"
+      - "cmd/main.go"
+      - "graphql/**"
+      - "internal/**"
 
 jobs:
-  build-binary:
+  goreleaser:
+    name: Release
     runs-on: ubuntu-latest
+
     steps:
-    - name: Checkout
-      uses: actions/checkout@v4
-      with:
-        fetch-depth: 0
+      - name: Checkout
+        uses: actions/checkout@v4
 
-    - id: vars
-      run: |
-        echo "go_version=$(cat go.mod | head -3 | tail -1 | cut -d ' ' -f 2)" >> $GITHUB_OUTPUT
-        echo "Using Go version ${{ steps.vars.outputs.go_version }}"
+      - id: vars
+        run: |
+          echo ::set-output name=go_version::$(cat go.mod | head -3 | tail -1 | cut -d ' ' -f 2)
+          echo "Using Go version ${{ steps.vars.outputs.go_version }}"
 
-    - name: Set up Go
-      uses: actions/setup-go@v5
-      with:
-        go-version: ${{ steps.vars.outputs.go_version }}
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ steps.vars.outputs.go_version }}
 
-    - name: Build
-      run: go build cmd/main.go
+      - name: Compile the source
+        uses: goreleaser/goreleaser-action@v6
+        with:
+          version: "~> v2"
+          args: "build --clean"
