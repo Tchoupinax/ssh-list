@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const Version string = "0.3.1"
+const Version string = "0.3.2"
 const BuildDate string = "2024-12-15"
 
 func init() {
