@@ -5,6 +5,8 @@ on:
     paths:
       - "api/**"
       - "cmd/main.go"
+      - "go.mod"
+      - "go.sum"
       - "graphql/**"
       - "internal/**"
 
