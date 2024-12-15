@@ -10,7 +10,6 @@ import (
 func display(
 	configs []Config,
 	aliasMaxLength *int,
-	hostnameMaxLength *int,
 	userMaxLength *int,
 	identityFileMaxLength *int,
 ) {

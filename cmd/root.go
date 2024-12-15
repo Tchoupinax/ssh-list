@@ -3,11 +3,9 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/signal"
 	"regexp"
 	"sort"
 	"strconv"
-	"syscall"
 
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
@@ -111,7 +109,6 @@ var RootCmd = &cobra.Command{
 			display(
 				configs,
 				&aliasMaxLength,
-				&hostnameMaxLength,
 				&userMaxLength,
 				&identityFileMaxLength,
 			)
@@ -175,26 +172,4 @@ func filterByRegex(configs []Config, name string) []Config {
 		}
 	}
 	return filtered
-}
-
-func handleSig() {
-	// Create a channel to receive OS signals
-	signalChan := make(chan os.Signal, 1)
-
-	// Notify the channel when a SIGINT (Ctrl+C) is received
-	signal.Notify(signalChan, syscall.SIGINT)
-
-	// Create a channel to signal when the program should exit
-	done := make(chan bool, 1)
-
-	// Goroutine to handle the signal
-	go func() {
-		<-signalChan // Wait for the SIGINT signal
-		fmt.Println("\nCtrl+C pressed. Cleaning up and exiting...")
-		done <- true
-	}()
-
-	fmt.Println("Press Ctrl+C to exit.")
-	<-done // Wait until the signal handling goroutine sends the exit signal
-	fmt.Println("Goodbye!")
 }
