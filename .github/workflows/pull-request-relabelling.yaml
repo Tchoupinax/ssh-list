@@ -1,4 +1,4 @@
-name: Labelling pull request
+name: Merge request checks
 
 on:
   pull_request:
