@@ -71,6 +71,10 @@ func processConfigsFromFile(
 		if block == "" {
 			continue
 		}
+		if !strings.Contains(block, "Host") {
+			continue
+		}
+
 		config := Config{}
 
 		for _, line := range strings.Split(block, "\n") {
