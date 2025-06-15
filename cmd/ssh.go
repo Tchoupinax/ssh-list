@@ -68,6 +68,7 @@ func createSSH(config Config) {
 	}
 
 	if err := session.Wait(); err != nil {
-		log.Fatalf("Session ended with error: %s", err)
 	}
+
+	fmt.Println()
 }
