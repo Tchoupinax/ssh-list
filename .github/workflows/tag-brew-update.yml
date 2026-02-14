@@ -11,18 +11,12 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/create-github-app-token@v1
-        id: app-token
-        with:
-          app-id: ${{ secrets.DEPLOY_APP_ID }}
-          private-key: ${{ secrets.DEPLOY_APP_KEY }}
-
       # Documentation here
       # https://github.com/mislav/bump-homebrew-formula-action?tab=readme-ov-file#action-inputs
       - uses: mislav/bump-homebrew-formula-action@v3
         with:
           commit-message: "feat({{formulaName}}): publish version {{version}} 🤖"
-          formula-path: ssh-list.rb
+          formula-path: gb.rb
           homebrew-tap: Tchoupinax/homebrew-brew
         env:
-          COMMITTER_TOKEN: ${{ steps.app-token.outputs.token }}
+          COMMITTER_TOKEN: ${{ secrets.BREW_COMITTER_PAT }}
