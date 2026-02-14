@@ -83,7 +83,7 @@ func processConfigsFromFile(
 			}
 
 			if strings.Contains(line, "User") {
-				config.User = strings.TrimSpace(strings.Replace(line, "User", "", -1))
+				config.User = strings.TrimSpace(strings.ReplaceAll(line, "User", ""))
 				if len(config.User) > *userMaxLength {
 					*userMaxLength = len(config.User)
 				}
@@ -91,7 +91,7 @@ func processConfigsFromFile(
 
 			if strings.Contains(line, "IdentityFile") {
 				if !strings.Contains(line, "#") {
-					config.IdentityFile = strings.TrimSpace(strings.Replace(line, "IdentityFile", "", -1))
+					config.IdentityFile = strings.TrimSpace(strings.ReplaceAll(line, "IdentityFile", ""))
 				} else {
 					config.IdentityFile = "❌"
 				}
@@ -102,7 +102,7 @@ func processConfigsFromFile(
 			}
 
 			if strings.Contains(line, "HostName") {
-				config.Hostname = strings.TrimSpace(strings.Replace(line, "HostName", "", -1))
+				config.Hostname = strings.TrimSpace(strings.ReplaceAll(line, "HostName", ""))
 				if len(config.Hostname) > *hostnameMaxLength {
 					*hostnameMaxLength = len(config.Hostname)
 				}

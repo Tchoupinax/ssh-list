@@ -40,20 +40,32 @@ func createSSH(config Config) {
 	if err != nil {
 		log.Fatalf("Failed to dial: %s", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			log.Printf("Failed to close session: %v", err)
+		}
+	}()
 
 	session, err := client.NewSession()
 	if err != nil {
 		log.Fatalf("Failed to create session: %s", err)
 	}
-	defer session.Close()
+	defer func() {
+		if err := session.Close(); err != nil {
+			log.Printf("Failed to close session: %v", err)
+		}
+	}()
 
 	fd := int(os.Stdin.Fd())
 	oldState, err := term.MakeRaw(fd)
 	if err != nil {
 		log.Fatalf("Failed to set terminal raw mode: %s", err)
 	}
-	defer term.Restore(fd, oldState)
+	defer func() {
+		if err := term.Restore(fd, oldState); err != nil {
+			log.Printf("Failed to restore terminal: %v", err)
+		}
+	}()
 
 	if err := session.RequestPty("xterm", 80, 40, ssh.TerminalModes{}); err != nil {
 		log.Fatalf("Failed to request pseudo-terminal: %s", err)
@@ -68,6 +80,7 @@ func createSSH(config Config) {
 	}
 
 	if err := session.Wait(); err != nil {
+		log.Fatalf("Failed to wait shell: %s", err)
 	}
 
 	fmt.Println()
