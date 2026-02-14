@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/fatih/color"
 	homedir "github.com/mitchellh/go-homedir"
 )
 
@@ -49,8 +50,20 @@ func extractDynamicFile(
 func extractSSHConfigFile() string {
 	home, err := homedir.Dir()
 	check(err)
-	sshConfigFile, err := os.ReadFile(fmt.Sprintf("%s%s", home, "/.ssh/config"))
+
+	path, err := homedir.Expand(cfgFile)
 	check(err)
+
+	sshConfigFile, err := os.ReadFile(path)
+	if len(sshConfigFile) == 0 {
+		sshConfigFile, err = os.ReadFile(fmt.Sprintf("%s%s", home, "/.ssh/config"))
+	}
+
+	if err != nil {
+		title := color.New(color.Bold, color.FgHiRed).SprintFunc()
+		fmt.Printf(title("Configuration %s does not exist\n"), path)
+		os.Exit(1)
+	}
 
 	return string(sshConfigFile)
 }
