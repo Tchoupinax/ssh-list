@@ -53,7 +53,11 @@ func createSSH(config Config) {
 	if err != nil {
 		log.Fatalf("Failed to set terminal raw mode: %s", err)
 	}
-	defer term.Restore(fd, oldState)
+	defer func() {
+		if err := term.Restore(fd, oldState); err != nil {
+			log.Printf("Failed to restore terminal: %v", err)
+		}
+	}()
 
 	if err := session.RequestPty("xterm", 80, 40, ssh.TerminalModes{}); err != nil {
 		log.Fatalf("Failed to request pseudo-terminal: %s", err)
@@ -68,6 +72,7 @@ func createSSH(config Config) {
 	}
 
 	if err := session.Wait(); err != nil {
+		log.Fatalf("Failed to wait shell: %s", err)
 	}
 
 	fmt.Println()
