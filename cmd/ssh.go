@@ -40,13 +40,21 @@ func createSSH(config Config) {
 	if err != nil {
 		log.Fatalf("Failed to dial: %s", err)
 	}
-	defer client.Close()
+	defer func() {
+		if err := client.Close(); err != nil {
+			log.Printf("Failed to close session: %v", err)
+		}
+	}()
 
 	session, err := client.NewSession()
 	if err != nil {
 		log.Fatalf("Failed to create session: %s", err)
 	}
-	defer session.Close()
+	defer func() {
+		if err := session.Close(); err != nil {
+			log.Printf("Failed to close session: %v", err)
+		}
+	}()
 
 	fd := int(os.Stdin.Fd())
 	oldState, err := term.MakeRaw(fd)
