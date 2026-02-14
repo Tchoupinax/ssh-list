@@ -1,4 +1,4 @@
-name: Releases publication
+name: Release binary
 
 on:
   push:
@@ -9,11 +9,10 @@ jobs:
   goreleaser:
     name: Release
     runs-on: ubuntu-latest
-    permissions: write-all
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - id: vars
         run: |
@@ -21,7 +20,7 @@ jobs:
           echo "Using Go version ${{ steps.vars.outputs.go_version }}"
 
       - name: Set up Go
-        uses: actions/setup-go@v5
+        uses: actions/setup-go@v6
         with:
           go-version: ${{ steps.vars.outputs.go_version }}
 
@@ -31,18 +30,9 @@ jobs:
           app-id: ${{ secrets.DEPLOY_APP_ID }}
           private-key: ${{ secrets.DEPLOY_APP_KEY }}
 
-      - name: Compile the source
-        uses: goreleaser/goreleaser-action@v6
-        with:
-          version: "~> v2"
-          args: "build --clean"
-        env:
-          GITHUB_TOKEN: ${{ steps.app-token.outputs.token }}
-
       - name: Run GoReleaser
         uses: goreleaser/goreleaser-action@v6
         with:
-          distribution: "goreleaser"
           version: "~> v2"
           args: "release --clean"
         env:
