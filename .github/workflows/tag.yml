@@ -12,6 +12,9 @@ jobs:
     steps:
       - name: Release project 🚀
         uses: tchoupinax/repo-config/shared-actions/golang/goreleaser-release@3df5047cbd8923c8083df349431385edfdda2d13
+        with:
+          appId: ${{ secrets.DEPLOY_APP_ID }}
+          privateKey: ${{ secrets.DEPLOY_APP_KEY }}
 
   brew-update:
     name: Update Brew registry 👊
@@ -19,3 +22,6 @@ jobs:
     steps:
       - name: Update Brew registry 👊
         uses: tchoupinax/repo-config/shared-actions/dx/update-brew-registry@b6112ca3fb39559ee7408dde1e22a0c5f94e0fbe
+        with:
+          patToken: ${{ secrets. BREW_COMITTER_PAT }}
+          formulaPath: sh-list.rb
