@@ -1,0 +1,29 @@
+name: Pull request checks 🔎
+
+on:
+  pull_request:
+
+jobs:
+  lint:
+    name: Check code quality 🫆
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check code quality 🫆
+        uses: tchoupinax/repo-config/shared-actions/golang/goreleaser-build-only@3df5047cbd8923c8083df349431385edfdda2d13
+
+  build:
+    name: Check build success 🦫
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check build success 🦫
+        uses: tchoupinax/repo-config/shared-actions/golang/goreleaser-build-only@3df5047cbd8923c8083df349431385edfdda2d13
+
+  labels:
+    name: Autodetect labels 🔍 
+    runs-on: ubuntu-latest
+    steps:
+      - name: Autodetect labels 🔍 
+        uses: tchoupinax/repo-config/shared-actions/dx/automatically-apply-labels@3df5047cbd8923c8083df349431385edfdda2d13
+        with:
+          appId: ${{ secrets.DEPLOY_APP_ID }}
+          privateKey: ${{ secrets.DEPLOY_APP_KEY }}
