@@ -3,7 +3,7 @@ name: Prepare next release 🚀
 on:
   push:
     branches:
-    - master
+      - master
 
 jobs:
   build:
