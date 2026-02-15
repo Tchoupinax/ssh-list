@@ -19,10 +19,10 @@ jobs:
         uses: tchoupinax/repo-config/shared-actions/steps/golang/goreleaser-build-only@v0
 
   labels:
-    name: Autodetect labels 🔍 
+    name: Autodetect labels 🔍
     runs-on: ubuntu-latest
     steps:
-      - name: Autodetect labels 🔍 
+      - name: Autodetect labels 🔍
         uses: tchoupinax/repo-config/shared-actions/steps/dx/automatically-apply-labels@v0
         with:
           appId: ${{ secrets.DEPLOY_APP_ID }}
