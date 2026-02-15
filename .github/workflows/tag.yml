@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Release project 🚀
-        uses: tchoupinax/repo-config/shared-actions/golang/goreleaser-release@3df5047cbd8923c8083df349431385edfdda2d13
+        uses: tchoupinax/repo-config/shared-actions/golang/goreleaser-release@db89e9d50f7a2f66da683a659213997894ff2155
         with:
           appId: ${{ secrets.DEPLOY_APP_ID }}
           privateKey: ${{ secrets.DEPLOY_APP_KEY }}
@@ -21,7 +21,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Update Brew registry 👊
-        uses: tchoupinax/repo-config/shared-actions/dx/update-brew-registry@b6112ca3fb39559ee7408dde1e22a0c5f94e0fbe
+        uses: tchoupinax/repo-config/shared-actions/dx/update-brew-registry@db89e9d50f7a2f66da683a659213997894ff2155
         with:
           patToken: ${{ secrets. BREW_COMITTER_PAT }}
           formulaPath: sh-list.rb
