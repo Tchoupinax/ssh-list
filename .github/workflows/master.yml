@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Run release draft to extract labels ☕️
-        uses: tchoupinax/repo-config/shared-actions/dx/prepare-draft-release@4b72cfeb1aa92d5a3e6b24651ff68739c19e32ce
+        uses: tchoupinax/repo-config/shared-actions/dx/prepare-draft-release@v0
         with:
           appId: ${{ secrets.DEPLOY_APP_ID }}
           privateKey: ${{ secrets.DEPLOY_APP_KEY }}
