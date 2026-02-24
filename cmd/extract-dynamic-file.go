@@ -84,6 +84,7 @@ func processConfigsFromFile(
 		if block == "" {
 			continue
 		}
+
 		if !strings.Contains(block, "Host") {
 			continue
 		}
@@ -91,7 +92,7 @@ func processConfigsFromFile(
 		config := Config{}
 
 		for _, line := range strings.Split(block, "\n") {
-			if strings.Contains(line, "port") {
+			if strings.Contains(line, "port") || strings.Contains(line, "Port") {
 				config.Port, _ = strconv.ParseInt(strings.Trim(line, " "), 10, 64)
 			}
 
@@ -112,6 +113,13 @@ func processConfigsFromFile(
 				if len(config.IdentityFile) > *identityFileMaxLength {
 					*identityFileMaxLength = len(config.IdentityFile)
 				}
+
+				if config.IdentityFile == "Ubikey" {
+					config.IdentityFile = "🔑"
+					*identityFileMaxLength = len("🔑")
+				}
+			} else {
+				config.IdentityFile = "❌"
 			}
 
 			if strings.Contains(line, "HostName") {
