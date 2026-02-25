@@ -43,6 +43,6 @@ func display(
 			cyan(trimLine(addSpaceToEnd(configs[i].IdentityFile, *identityFileMaxLength+1))),
 			pink(trimLine(configs[i].Hostname)))
 	}
-	
+
 	fmt.Println("")
 }
