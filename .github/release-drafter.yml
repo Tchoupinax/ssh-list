@@ -4,32 +4,32 @@ change-template: "- (#$NUMBER) $TITLE — by @$AUTHOR 🫶"
 change-title-escapes: '\<*_&'
 
 categories:
-  - title: "🚀 Features"
-    labels:
-      - "semver:minor"
-  - title: "🐛 Bug Fixes"
-    labels:
-      - "semver:patch"
-  - title: "🧰 Maintenance"
-    labels:
-      - "maintenance"
-  - title: "👷 Build System"
-    labels:
-      - "CI/CD"
-  - title: "📝 Documentation Changes"
-    labels:
-      - "docs"
+- title: "🚀 Features"
+  labels:
+  - "semver:minor"
+- title: "🐛 Bug Fixes"
+  labels:
+  - "semver:patch"
+- title: "🧰 Maintenance"
+  labels:
+  - "maintenance"
+- title: "👷 Build System"
+  labels:
+  - "CI/CD"
+- title: "📝 Documentation Changes"
+  labels:
+  - "docs"
 
 version-resolver:
   major:
     labels:
-      - "semver:major"
+    - "semver:major"
   minor:
     labels:
-      - "semver:minor"
+    - "semver:minor"
   patch:
     labels:
-      - "semver:patch"
+    - "semver:patch"
   default: "patch"
 
 template: |
