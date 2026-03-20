@@ -111,6 +111,7 @@ var RootCmd = &cobra.Command{
 				&aliasMaxLength,
 				&userMaxLength,
 				&identityFileMaxLength,
+				&hostnameMaxLength,
 			)
 		}
 	},
