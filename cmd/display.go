@@ -16,41 +16,39 @@ func trimLine(s string) string {
 }
 
 type terminalTheme struct {
-	title      *color.Color
-	header     *color.Color
-	separator  *color.Color
-	idx        *color.Color
-	alias      *color.Color
-	user       *color.Color
-	identity   *color.Color
-	host       *color.Color
-	port       *color.Color
-	stripeBg   *color.Color
-	stripeIdx  *color.Color
+	title       *color.Color
+	header      *color.Color
+	separator   *color.Color
+	idx         *color.Color
+	alias       *color.Color
+	user        *color.Color
+	identity    *color.Color
+	host        *color.Color
+	port        *color.Color
+	stripeBg    *color.Color
+	stripeIdx   *color.Color
 	stripeAlias *color.Color
-	stripeUser *color.Color
-	stripeID   *color.Color
-	stripeHost *color.Color
-	stripePort *color.Color
+	stripeUser  *color.Color
+	stripeID    *color.Color
+	stripeHost  *color.Color
+	stripePort  *color.Color
 }
 
 func newTerminalTheme() terminalTheme {
 	t := terminalTheme{
-		title:    color.New(color.Bold, color.FgWhite),
-		header:   color.New(color.Bold, color.FgHiWhite),
+		title:     color.New(color.Bold, color.FgWhite),
+		header:    color.New(color.Bold, color.FgHiWhite),
 		separator: color.New(color.Bold, color.FgWhite),
-		idx: color.New(color.Bold, color.FgHiBlue),
-		alias: color.New(color.Bold, color.FgHiBlue),
-		user: color.New(color.Bold, color.FgHiBlue),
-		identity: color.New(color.Bold, color.FgHiBlue),
-		host: color.New(color.Bold, color.FgHiBlue),
-		port: color.New(color.Bold, color.Bold, color.FgHiBlue),
+		idx:       color.New(color.Bold, color.FgHiBlue),
+		alias:     color.New(color.Bold, color.FgHiBlue),
+		user:      color.New(color.Bold, color.FgHiBlue),
+		identity:  color.New(color.Bold, color.FgHiBlue),
+		host:      color.New(color.Bold, color.FgHiBlue),
+		port:      color.New(color.Bold, color.Bold, color.FgHiBlue),
 	}
 
-	// --- Zebra stripe: subtle slate panel + light text (readable on the panel) ---
-	const sr, sg, sb = 45, 48, 55
 	t.stripeBg = color.New(color.Bold, color.FgWhite)
-	t.stripeIdx =color.New(color.Bold, color.FgWhite)
+	t.stripeIdx = color.New(color.Bold, color.FgWhite)
 	t.stripeAlias = color.New(color.Bold, color.FgWhite)
 	t.stripeUser = color.New(color.Bold, color.FgWhite)
 	t.stripeID = color.New(color.Bold, color.FgWhite)
