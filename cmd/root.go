@@ -23,16 +23,6 @@ func check(e error) {
 	}
 }
 
-func addSpaceToEnd(s string, size int) string {
-	var diff = size - len(s)
-
-	for i := 0; i < diff; i++ {
-		s = fmt.Sprintf("%s%s", s, " ")
-	}
-
-	return s
-}
-
 type Config struct {
 	Alias        string
 	Hostname     string
