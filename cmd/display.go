@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/mattn/go-runewidth"
 )
 
 // trimLine removes \r and \n so they don't overwrite the line (e.g. index) in the terminal.
@@ -13,6 +14,15 @@ func trimLine(s string) string {
 	s = strings.ReplaceAll(s, "\r", "")
 	s = strings.ReplaceAll(s, "\n", "")
 	return s
+}
+
+// padCell pads s to exactly width terminal columns (handles wide runes vs byte length).
+func padCell(s string, width int) string {
+	w := runewidth.StringWidth(s)
+	if w >= width {
+		return s
+	}
+	return s + strings.Repeat(" ", width-w)
 }
 
 type terminalTheme struct {
@@ -59,13 +69,34 @@ func newTerminalTheme() terminalTheme {
 }
 
 func (t terminalTheme) printRow(
-	index, aliasVal, userVal, idFileVal, hostnameVal, portVal string,
+	index, aliasVal, userVal, idFileVal, hostCell string,
 	striped bool,
+	cpuVal, ramVal string,
+	withStats bool,
 ) {
 	sp := "  "
 	if striped {
 		spPad := t.stripeBg.Sprint(sp)
-		fmt.Printf("%s%s%s%s%s%s%s%s%s%s%s\n",
+		if withStats {
+			fmt.Printf("%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+				spPad,
+				t.stripeIdx.Sprint(index),
+				spPad,
+				t.stripeAlias.Sprint(aliasVal),
+				spPad,
+				t.stripeUser.Sprint(userVal),
+				spPad,
+				t.stripeID.Sprint(idFileVal),
+				spPad,
+				t.stripeHost.Sprint(hostCell),
+				spPad,
+				t.stripeHost.Sprint(cpuVal),
+				spPad,
+				t.stripeHost.Sprint(ramVal),
+			)
+			return
+		}
+		fmt.Printf("%s%s%s%s%s%s%s%s%s%s\n",
 			spPad,
 			t.stripeIdx.Sprint(index),
 			spPad,
@@ -75,20 +106,39 @@ func (t terminalTheme) printRow(
 			spPad,
 			t.stripeID.Sprint(idFileVal),
 			spPad,
-			t.stripeHost.Sprint(hostnameVal),
-			t.stripePort.Sprint(portVal),
+			t.stripeHost.Sprint(hostCell),
 		)
 		return
 	}
 
-	fmt.Printf("  %s  %s  %s  %s  %s%s\n",
+	if withStats {
+		fmt.Printf("  %s  %s  %s  %s  %s  %s  %s\n",
+			t.idx.Sprint(index),
+			t.alias.Sprint(aliasVal),
+			t.user.Sprint(userVal),
+			t.identity.Sprint(idFileVal),
+			t.host.Sprint(hostCell),
+			t.host.Sprint(cpuVal),
+			t.host.Sprint(ramVal),
+		)
+		return
+	}
+
+	fmt.Printf("  %s  %s  %s  %s  %s\n",
 		t.idx.Sprint(index),
 		t.alias.Sprint(aliasVal),
 		t.user.Sprint(userVal),
 		t.identity.Sprint(idFileVal),
-		t.host.Sprint(hostnameVal),
-		t.port.Sprint(portVal),
+		t.host.Sprint(hostCell),
 	)
+}
+
+// columnWidth is max content width + 1 for a trailing space (same idea as previous col()).
+func columnWidth(maxContent int) int {
+	if maxContent < 0 {
+		return 0
+	}
+	return maxContent + 1
 }
 
 func display(
@@ -97,20 +147,76 @@ func display(
 	userMaxLength *int,
 	identityFileMaxLength *int,
 	hostnameMaxLength *int,
+	stats []ServerStats,
 ) {
 	th := newTerminalTheme()
 
+	// Recompute max display widths so columns align (byte len from config parse is wrong for UTF-8 / em dash).
 	aliasW := *aliasMaxLength
 	userW := *userMaxLength
 	idFileW := *identityFileMaxLength
 	hostW := *hostnameMaxLength
 
-	// +1 keeps column padding aligned with cell content below
-	col := func(w int) int { return w + 1 }
+	maxInt := func(a, b int) int {
+		if a > b {
+			return a
+		}
+		return b
+	}
+
+	for _, c := range configs {
+		if w := runewidth.StringWidth(trimLine(c.Alias)); w > aliasW {
+			aliasW = w
+		}
+		if w := runewidth.StringWidth(trimLine(c.User)); w > userW {
+			userW = w
+		}
+		if w := runewidth.StringWidth(trimLine(c.IdentityFile)); w > idFileW {
+			idFileW = w
+		}
+		hp := trimLine(c.Hostname)
+		if c.Port != 0 && c.Port != 22 {
+			hp += fmt.Sprintf(":%d", c.Port)
+		}
+		if w := runewidth.StringWidth(hp); w > hostW {
+			hostW = w
+		}
+	}
+
+	aliasW = maxInt(aliasW, runewidth.StringWidth("Alias"))
+	userW = maxInt(userW, runewidth.StringWidth("User"))
+	idFileW = maxInt(idFileW, runewidth.StringWidth("Identity file"))
+	hostW = maxInt(hostW, runewidth.StringWidth("Host"))
+
+	withStats := stats != nil && len(stats) == len(configs)
+	cpuW, ramW := runewidth.StringWidth("CPU"), runewidth.StringWidth("RAM")
+	if withStats {
+		for i := range configs {
+			if w := runewidth.StringWidth(trimLine(stats[i].CPUString())); w > cpuW {
+				cpuW = w
+			}
+			if w := runewidth.StringWidth(trimLine(stats[i].RAMString())); w > ramW {
+				ramW = w
+			}
+		}
+	}
+
+	aw := columnWidth(aliasW)
+	uw := columnWidth(userW)
+	iw := columnWidth(idFileW)
+	hw := columnWidth(hostW)
+	cw := columnWidth(cpuW)
+	rw := columnWidth(ramW)
 
 	indexWidth := len(strconv.Itoa(len(configs) - 1))
 	if indexWidth < 1 {
 		indexWidth = 1
+	}
+
+	gap := 2 // two spaces between columns, matching fmt "  %s  %s"
+	separatorLen := gap + indexWidth + gap + aw + gap + uw + gap + iw + gap + hw
+	if withStats {
+		separatorLen += gap + cw + gap + rw
 	}
 
 	fmt.Println()
@@ -118,31 +224,50 @@ func display(
 	fmt.Println()
 
 	indexPad := strings.Repeat(" ", indexWidth)
-	fmt.Printf("  %s  %s  %s  %s  %s\n",
-		th.separator.Sprint(indexPad),
-		th.header.Sprint(addSpaceToEnd("Alias", col(aliasW))),
-		th.header.Sprint(addSpaceToEnd("User", col(userW))),
-		th.header.Sprint(addSpaceToEnd("Identity file", col(idFileW))),
-		th.header.Sprint(addSpaceToEnd("Host", col(hostW))),
-	)
+	if withStats {
+		fmt.Printf("  %s  %s  %s  %s  %s  %s  %s\n",
+			th.separator.Sprint(indexPad),
+			th.header.Sprint(padCell("Alias", aw)),
+			th.header.Sprint(padCell("User", uw)),
+			th.header.Sprint(padCell("Identity file", iw)),
+			th.header.Sprint(padCell("Host", hw)),
+			th.header.Sprint(padCell("CPU", cw)),
+			th.header.Sprint(padCell("RAM", rw)),
+		)
+	} else {
+		fmt.Printf("  %s  %s  %s  %s  %s\n",
+			th.separator.Sprint(indexPad),
+			th.header.Sprint(padCell("Alias", aw)),
+			th.header.Sprint(padCell("User", uw)),
+			th.header.Sprint(padCell("Identity file", iw)),
+			th.header.Sprint(padCell("Host", hw)),
+		)
+	}
 
-	separatorLen := indexWidth + 2 + col(aliasW) + 3 + col(userW) + 3 + col(idFileW) + 3 + col(hostW) + 3
 	fmt.Printf("  %s\n", th.separator.Sprint(strings.Repeat("─", separatorLen)))
 
 	for i := range configs {
 		index := strconv.Itoa(i)
 		index = strings.Repeat(" ", indexWidth-len(index)) + index
 
-		aliasVal := trimLine(addSpaceToEnd(configs[i].Alias, col(aliasW)))
-		userVal := trimLine(addSpaceToEnd(configs[i].User, col(userW)))
-		idFileVal := trimLine(addSpaceToEnd(configs[i].IdentityFile, col(idFileW)))
-		hostnameVal := trimLine(configs[i].Hostname)
-		portVal := ""
+		aliasVal := padCell(trimLine(configs[i].Alias), aw)
+		userVal := padCell(trimLine(configs[i].User), uw)
+		idFileVal := padCell(trimLine(configs[i].IdentityFile), iw)
+
+		hostPort := trimLine(configs[i].Hostname)
 		if configs[i].Port != 0 && configs[i].Port != 22 {
-			portVal = fmt.Sprintf(":%d", configs[i].Port)
+			hostPort += fmt.Sprintf(":%d", configs[i].Port)
+		}
+		hostCell := padCell(hostPort, hw)
+
+		cpuVal := ""
+		ramVal := ""
+		if withStats {
+			cpuVal = padCell(trimLine(stats[i].CPUString()), cw)
+			ramVal = padCell(trimLine(stats[i].RAMString()), rw)
 		}
 
-		th.printRow(index, aliasVal, userVal, idFileVal, hostnameVal, portVal, i%2 == 1)
+		th.printRow(index, aliasVal, userVal, idFileVal, hostCell, i%2 == 1, cpuVal, ramVal, withStats)
 	}
 
 	fmt.Println()
