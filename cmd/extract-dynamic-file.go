@@ -118,8 +118,6 @@ func processConfigsFromFile(
 					config.IdentityFile = "🔑"
 					*identityFileMaxLength = len("🔑")
 				}
-			} else {
-				config.IdentityFile = "❌"
 			}
 
 			if strings.Contains(line, "HostName") {
