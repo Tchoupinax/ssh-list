@@ -10,7 +10,9 @@ import (
 
 // ServerStats holds CPU/RAM metrics gathered from a remote Linux host over SSH.
 // Values are best-effort; Err is set when the host is unreachable or metrics cannot be read.
+// Ready is false until the first fetch completes (used for progressive --stats display).
 type ServerStats struct {
+	Ready      bool
 	CPUCores   int
 	Load1      float64
 	MemTotalKB uint64
@@ -24,17 +26,31 @@ const remoteStatsScript = `bash -c 'if ! test -r /proc/meminfo; then echo STATER
 
 const statsSessionTimeout = 15 * time.Second
 
+// errStatsSkipGit is set when CPU/RAM fetch is skipped because alias or host matches the git filter.
+const errStatsSkipGit = "git-skip"
+
+// skipStatsDueToGitHost returns true if we should not SSH for metrics (alias or hostname contains "git", case-insensitive).
+func skipStatsDueToGitHost(c Config) bool {
+	a := strings.ToLower(strings.TrimSpace(c.Alias))
+	h := strings.ToLower(strings.TrimSpace(c.Hostname))
+	return strings.Contains(a, "git") || strings.Contains(h, "git")
+}
+
 // fetchServerStats connects once, runs the remote probe, and parses the result.
 func fetchServerStats(config Config) ServerStats {
+	if skipStatsDueToGitHost(config) {
+		return ServerStats{Ready: true, Err: errStatsSkipGit}
+	}
+
 	client, err := dialSSHClient(config)
 	if err != nil {
-		return ServerStats{Err: shortErr(err)}
+		return ServerStats{Err: shortErr(err), Ready: true}
 	}
 	defer func() { _ = client.Close() }()
 
 	session, err := client.NewSession()
 	if err != nil {
-		return ServerStats{Err: shortErr(err)}
+		return ServerStats{Err: shortErr(err), Ready: true}
 	}
 	defer func() { _ = session.Close() }()
 
@@ -53,10 +69,10 @@ func fetchServerStats(config Config) ServerStats {
 	select {
 	case out = <-outCh:
 	case err := <-errCh:
-		return ServerStats{Err: shortErr(err)}
+		return ServerStats{Err: shortErr(err), Ready: true}
 	case <-time.After(statsSessionTimeout):
 		_ = session.Close()
-		return ServerStats{Err: "timeout"}
+		return ServerStats{Err: "timeout", Ready: true}
 	}
 
 	return parseRemoteStatsOutput(string(out))
@@ -96,11 +112,13 @@ func parseRemoteStatsOutput(raw string) ServerStats {
 		}
 	}
 	if s.Err != "" {
+		s.Ready = true
 		return s
 	}
 	if s.MemTotalKB == 0 && s.CPUCores == 0 {
 		s.Err = "empty"
 	}
+	s.Ready = true
 	return s
 }
 
@@ -118,22 +136,40 @@ func parseUint(s string) uint64 {
 
 // CPUString formats load average and core count for table display.
 func (s ServerStats) CPUString() string {
+	if !s.Ready {
+		return SymbolLoading
+	}
+	if s.Err == "empty" {
+		return SymbolEmpty
+	}
+	if s.Err == errStatsSkipGit {
+		return SymbolSkipped
+	}
 	if s.Err != "" {
-		return "—"
+		return SymbolIssue
 	}
 	if s.CPUCores <= 0 {
-		return "—"
+		return SymbolEmpty
 	}
 	return fmt.Sprintf("%.2f/%d", s.Load1, s.CPUCores)
 }
 
 // RAMString formats used/total and usage percent (KiB from /proc/meminfo).
 func (s ServerStats) RAMString() string {
+	if !s.Ready {
+		return SymbolLoading
+	}
+	if s.Err == "empty" {
+		return SymbolEmpty
+	}
+	if s.Err == errStatsSkipGit {
+		return SymbolSkipped
+	}
 	if s.Err != "" {
-		return "—"
+		return SymbolIssue
 	}
 	if s.MemTotalKB == 0 {
-		return "—"
+		return SymbolEmpty
 	}
 	used := s.MemTotalKB - s.MemAvailKB
 	if s.MemAvailKB > s.MemTotalKB {

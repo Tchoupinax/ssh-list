@@ -33,4 +33,8 @@ ssh-list --stats
 - **CPU** column: 1‑minute load average / logical CPU count (e.g. `0.42/4`).
 - **RAM** column: approximate used percentage and used/total size (from `MemAvailable` when present).
 
-Hosts that are down, non‑Linux, or unreachable show `—` in those columns. Queries run in parallel (up to 8 at a time) with a timeout per host.
+Entries whose **alias** or **hostname** contains `git` (case-insensitive, e.g. GitHub/GitLab hosts) **do not** get a metrics SSH: CPU/RAM show `–` for those rows.
+
+Other failures (host down, non‑Linux, timeout) show `⚠`; missing values use `∅`. Queries run in parallel (up to 8 at a time) with a timeout per host.
+
+The table appears **immediately** with `…` in the CPU/RAM columns while each host is queried; the view refreshes as results arrive (alternate screen on a real TTY). When everything is done, the final table is printed again on the main screen so it stays visible, followed by how long the metric fetch took. If stdout is not a terminal, the tool falls back to waiting for all metrics before printing once.

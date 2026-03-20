@@ -109,18 +109,24 @@ var RootCmd = &cobra.Command{
 		}
 
 		if !sshConnectionCreated {
-			var stats []ServerStats
 			if showStats {
-				stats = fetchAllServerStats(configs)
+				displayStatsLive(
+					configs,
+					&aliasMaxLength,
+					&userMaxLength,
+					&identityFileMaxLength,
+					&hostnameMaxLength,
+				)
+			} else {
+				display(
+					configs,
+					&aliasMaxLength,
+					&userMaxLength,
+					&identityFileMaxLength,
+					&hostnameMaxLength,
+					nil,
+				)
 			}
-			display(
-				configs,
-				&aliasMaxLength,
-				&userMaxLength,
-				&identityFileMaxLength,
-				&hostnameMaxLength,
-				stats,
-			)
 		}
 	},
 }
