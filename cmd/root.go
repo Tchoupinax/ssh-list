@@ -14,20 +14,13 @@ import (
 
 var cfgFile string
 
+// showStats fetches CPU/RAM from each host over SSH when listing (see server_stats.go).
+var showStats bool
+
 func check(e error) {
 	if e != nil {
 		panic(e)
 	}
-}
-
-func addSpaceToEnd(s string, size int) string {
-	var diff = size - len(s)
-
-	for i := 0; i < diff; i++ {
-		s = fmt.Sprintf("%s%s", s, " ")
-	}
-
-	return s
 }
 
 type Config struct {
@@ -106,13 +99,24 @@ var RootCmd = &cobra.Command{
 		}
 
 		if !sshConnectionCreated {
-			display(
-				configs,
-				&aliasMaxLength,
-				&userMaxLength,
-				&identityFileMaxLength,
-				&hostnameMaxLength,
-			)
+			if showStats {
+				displayStatsLive(
+					configs,
+					&aliasMaxLength,
+					&userMaxLength,
+					&identityFileMaxLength,
+					&hostnameMaxLength,
+				)
+			} else {
+				display(
+					configs,
+					&aliasMaxLength,
+					&userMaxLength,
+					&identityFileMaxLength,
+					&hostnameMaxLength,
+					nil,
+				)
+			}
 		}
 	},
 }
@@ -131,6 +135,7 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "~/.ssh/config", "SSH config file")
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "version", "", "display version")
+	RootCmd.Flags().BoolVar(&showStats, "stats", false, "Fetch CPU and RAM for each host over SSH (remote must be Linux with /proc)")
 }
 
 // initConfig reads in config file and ENV variables if set.

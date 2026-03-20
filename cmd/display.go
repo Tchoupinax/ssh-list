@@ -6,13 +6,251 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/mattn/go-runewidth"
 )
+
+// renderTableToString builds the full table (title, header, rows) as plain text with ANSI colors.
+// stats may be nil to omit CPU/RAM columns. When len(stats)==len(configs), stats columns are shown.
+func renderTableToString(
+	configs []Config,
+	aliasMaxLength *int,
+	userMaxLength *int,
+	identityFileMaxLength *int,
+	hostnameMaxLength *int,
+	stats []ServerStats,
+) string {
+	maxInt := func(a, b int) int {
+		if a > b {
+			return a
+		}
+		return b
+	}
+
+	if len(configs) == 0 {
+		th := newTerminalTheme()
+		dim := color.New(color.Faint, color.FgHiWhite).SprintFunc()
+		var b strings.Builder
+		b.WriteString("\n")
+		fmt.Fprintf(&b, "  %s\n", th.title.Sprint("SSH connections"))
+		b.WriteString("\n")
+		fmt.Fprintf(&b, "  %s\n", dim(fmt.Sprintf("%s No SSH hosts found", SymbolEmpty)))
+		return b.String()
+	}
+
+	th := newTerminalTheme()
+
+	aliasW := *aliasMaxLength
+	userW := *userMaxLength
+	idFileW := *identityFileMaxLength
+	hostW := *hostnameMaxLength
+
+	emptyW := runewidth.StringWidth(SymbolEmpty)
+	aliasW = maxInt(aliasW, emptyW)
+	userW = maxInt(userW, emptyW)
+	idFileW = maxInt(idFileW, emptyW)
+	hostW = maxInt(hostW, emptyW)
+
+	for _, c := range configs {
+		if w := runewidth.StringWidth(trimLine(c.Alias)); w > aliasW {
+			aliasW = w
+		}
+		if w := runewidth.StringWidth(trimLine(c.User)); w > userW {
+			userW = w
+		}
+		if w := runewidth.StringWidth(trimLine(c.IdentityFile)); w > idFileW {
+			idFileW = w
+		}
+		hp := trimLine(c.Hostname)
+		if c.Port != 0 && c.Port != 22 {
+			hp += fmt.Sprintf(":%d", c.Port)
+		}
+		if w := runewidth.StringWidth(hp); w > hostW {
+			hostW = w
+		}
+	}
+
+	aliasW = maxInt(aliasW, runewidth.StringWidth("Alias"))
+	userW = maxInt(userW, runewidth.StringWidth("User"))
+	idFileW = maxInt(idFileW, runewidth.StringWidth("Identity file"))
+	hostW = maxInt(hostW, runewidth.StringWidth("Host"))
+
+	withStats := stats != nil && len(stats) == len(configs)
+	symW := maxInt(maxInt(maxInt(runewidth.StringWidth(SymbolIssue), runewidth.StringWidth(SymbolEmpty)), runewidth.StringWidth(SymbolLoading)), runewidth.StringWidth(SymbolSkipped))
+	cpuW, ramW := maxInt(runewidth.StringWidth("CPU"), symW), maxInt(runewidth.StringWidth("RAM"), symW)
+	if withStats {
+		for i := range configs {
+			if w := runewidth.StringWidth(trimLine(stats[i].CPUString())); w > cpuW {
+				cpuW = w
+			}
+			if w := runewidth.StringWidth(trimLine(stats[i].RAMString())); w > ramW {
+				ramW = w
+			}
+		}
+	}
+
+	aw := columnWidth(aliasW)
+	uw := columnWidth(userW)
+	iw := columnWidth(idFileW)
+	hw := columnWidth(hostW)
+	cw := columnWidth(cpuW)
+	rw := columnWidth(ramW)
+
+	indexWidth := len(strconv.Itoa(len(configs) - 1))
+	if indexWidth < 1 {
+		indexWidth = 1
+	}
+
+	gap := 2
+	separatorLen := gap + indexWidth + gap + aw + gap + uw + gap + iw + gap + hw
+	if withStats {
+		separatorLen += gap + cw + gap + rw
+	}
+
+	var b strings.Builder
+	b.WriteString("\n")
+	fmt.Fprintf(&b, "  %s\n", th.title.Sprint("SSH connections"))
+	b.WriteString("\n")
+
+	indexPad := strings.Repeat(" ", indexWidth)
+	if withStats {
+		fmt.Fprintf(&b, "  %s  %s  %s  %s  %s  %s  %s\n",
+			th.separator.Sprint(indexPad),
+			th.header.Sprint(padCell("Alias", aw)),
+			th.header.Sprint(padCell("User", uw)),
+			th.header.Sprint(padCell("Identity file", iw)),
+			th.header.Sprint(padCell("Host", hw)),
+			th.header.Sprint(padCell("CPU", cw)),
+			th.header.Sprint(padCell("RAM", rw)),
+		)
+	} else {
+		fmt.Fprintf(&b, "  %s  %s  %s  %s  %s\n",
+			th.separator.Sprint(indexPad),
+			th.header.Sprint(padCell("Alias", aw)),
+			th.header.Sprint(padCell("User", uw)),
+			th.header.Sprint(padCell("Identity file", iw)),
+			th.header.Sprint(padCell("Host", hw)),
+		)
+	}
+
+	fmt.Fprintf(&b, "  %s\n", th.separator.Sprint(strings.Repeat("─", separatorLen)))
+
+	for i := range configs {
+		index := strconv.Itoa(i)
+		index = strings.Repeat(" ", indexWidth-len(index)) + index
+
+		aliasVal := padCell(cellOrSymbol(configs[i].Alias), aw)
+		userVal := padCell(cellOrSymbol(configs[i].User), uw)
+		idFileVal := padCell(cellOrSymbol(configs[i].IdentityFile), iw)
+
+		hostPort := trimLine(configs[i].Hostname)
+		if configs[i].Port != 0 && configs[i].Port != 22 {
+			hostPort += fmt.Sprintf(":%d", configs[i].Port)
+		}
+		hostCell := padCell(cellOrSymbol(hostPort), hw)
+
+		cpuVal := ""
+		ramVal := ""
+		if withStats {
+			cpuVal = padCell(trimLine(stats[i].CPUString()), cw)
+			ramVal = padCell(trimLine(stats[i].RAMString()), rw)
+		}
+
+		writeTableRow(&b, th, index, aliasVal, userVal, idFileVal, hostCell, i%2 == 1, cpuVal, ramVal, withStats)
+	}
+
+	return b.String()
+}
+
+func writeTableRow(
+	b *strings.Builder,
+	th terminalTheme,
+	index, aliasVal, userVal, idFileVal, hostCell string,
+	striped bool,
+	cpuVal, ramVal string,
+	withStats bool,
+) {
+	sp := "  "
+	if striped {
+		spPad := th.stripeBg.Sprint(sp)
+		if withStats {
+			fmt.Fprintf(b, "%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n",
+				spPad,
+				th.stripeIdx.Sprint(index),
+				spPad,
+				th.stripeAlias.Sprint(aliasVal),
+				spPad,
+				th.stripeUser.Sprint(userVal),
+				spPad,
+				th.stripeID.Sprint(idFileVal),
+				spPad,
+				th.stripeHost.Sprint(hostCell),
+				spPad,
+				th.stripeHost.Sprint(cpuVal),
+				spPad,
+				th.stripeHost.Sprint(ramVal),
+			)
+			return
+		}
+		fmt.Fprintf(b, "%s%s%s%s%s%s%s%s%s%s\n",
+			spPad,
+			th.stripeIdx.Sprint(index),
+			spPad,
+			th.stripeAlias.Sprint(aliasVal),
+			spPad,
+			th.stripeUser.Sprint(userVal),
+			spPad,
+			th.stripeID.Sprint(idFileVal),
+			spPad,
+			th.stripeHost.Sprint(hostCell),
+		)
+		return
+	}
+
+	if withStats {
+		fmt.Fprintf(b, "  %s  %s  %s  %s  %s  %s  %s\n",
+			th.idx.Sprint(index),
+			th.alias.Sprint(aliasVal),
+			th.user.Sprint(userVal),
+			th.identity.Sprint(idFileVal),
+			th.host.Sprint(hostCell),
+			th.host.Sprint(cpuVal),
+			th.host.Sprint(ramVal),
+		)
+		return
+	}
+
+	fmt.Fprintf(b, "  %s  %s  %s  %s  %s\n",
+		th.idx.Sprint(index),
+		th.alias.Sprint(aliasVal),
+		th.user.Sprint(userVal),
+		th.identity.Sprint(idFileVal),
+		th.host.Sprint(hostCell),
+	)
+}
 
 // trimLine removes \r and \n so they don't overwrite the line (e.g. index) in the terminal.
 func trimLine(s string) string {
 	s = strings.ReplaceAll(s, "\r", "")
 	s = strings.ReplaceAll(s, "\n", "")
 	return s
+}
+
+// cellOrSymbol shows SymbolEmpty for blank SSH config fields.
+func cellOrSymbol(s string) string {
+	s = trimLine(s)
+	if s == "" {
+		return SymbolEmpty
+	}
+	return s
+}
+
+// padCell pads s to exactly width terminal columns (handles wide runes vs byte length).
+func padCell(s string, width int) string {
+	w := runewidth.StringWidth(s)
+	if w >= width {
+		return s
+	}
+	return s + strings.Repeat(" ", width-w)
 }
 
 type terminalTheme struct {
@@ -58,37 +296,12 @@ func newTerminalTheme() terminalTheme {
 	return t
 }
 
-func (t terminalTheme) printRow(
-	index, aliasVal, userVal, idFileVal, hostnameVal, portVal string,
-	striped bool,
-) {
-	sp := "  "
-	if striped {
-		spPad := t.stripeBg.Sprint(sp)
-		fmt.Printf("%s%s%s%s%s%s%s%s%s%s%s\n",
-			spPad,
-			t.stripeIdx.Sprint(index),
-			spPad,
-			t.stripeAlias.Sprint(aliasVal),
-			spPad,
-			t.stripeUser.Sprint(userVal),
-			spPad,
-			t.stripeID.Sprint(idFileVal),
-			spPad,
-			t.stripeHost.Sprint(hostnameVal),
-			t.stripePort.Sprint(portVal),
-		)
-		return
+// columnWidth is max content width + 1 for a trailing space (same idea as previous col()).
+func columnWidth(maxContent int) int {
+	if maxContent < 0 {
+		return 0
 	}
-
-	fmt.Printf("  %s  %s  %s  %s  %s%s\n",
-		t.idx.Sprint(index),
-		t.alias.Sprint(aliasVal),
-		t.user.Sprint(userVal),
-		t.identity.Sprint(idFileVal),
-		t.host.Sprint(hostnameVal),
-		t.port.Sprint(portVal),
-	)
+	return maxContent + 1
 }
 
 func display(
@@ -97,53 +310,16 @@ func display(
 	userMaxLength *int,
 	identityFileMaxLength *int,
 	hostnameMaxLength *int,
+	stats []ServerStats,
 ) {
-	th := newTerminalTheme()
-
-	aliasW := *aliasMaxLength
-	userW := *userMaxLength
-	idFileW := *identityFileMaxLength
-	hostW := *hostnameMaxLength
-
-	// +1 keeps column padding aligned with cell content below
-	col := func(w int) int { return w + 1 }
-
-	indexWidth := len(strconv.Itoa(len(configs) - 1))
-	if indexWidth < 1 {
-		indexWidth = 1
-	}
-
 	fmt.Println()
-	fmt.Printf("  %s\n", th.title.Sprint("SSH connections"))
-	fmt.Println()
-
-	indexPad := strings.Repeat(" ", indexWidth)
-	fmt.Printf("  %s  %s  %s  %s  %s\n",
-		th.separator.Sprint(indexPad),
-		th.header.Sprint(addSpaceToEnd("Alias", col(aliasW))),
-		th.header.Sprint(addSpaceToEnd("User", col(userW))),
-		th.header.Sprint(addSpaceToEnd("Identity file", col(idFileW))),
-		th.header.Sprint(addSpaceToEnd("Host", col(hostW))),
-	)
-
-	separatorLen := indexWidth + 2 + col(aliasW) + 3 + col(userW) + 3 + col(idFileW) + 3 + col(hostW) + 3
-	fmt.Printf("  %s\n", th.separator.Sprint(strings.Repeat("─", separatorLen)))
-
-	for i := range configs {
-		index := strconv.Itoa(i)
-		index = strings.Repeat(" ", indexWidth-len(index)) + index
-
-		aliasVal := trimLine(addSpaceToEnd(configs[i].Alias, col(aliasW)))
-		userVal := trimLine(addSpaceToEnd(configs[i].User, col(userW)))
-		idFileVal := trimLine(addSpaceToEnd(configs[i].IdentityFile, col(idFileW)))
-		hostnameVal := trimLine(configs[i].Hostname)
-		portVal := ""
-		if configs[i].Port != 0 && configs[i].Port != 22 {
-			portVal = fmt.Sprintf(":%d", configs[i].Port)
-		}
-
-		th.printRow(index, aliasVal, userVal, idFileVal, hostnameVal, portVal, i%2 == 1)
-	}
-
+	fmt.Print(renderTableToString(
+		configs,
+		aliasMaxLength,
+		userMaxLength,
+		identityFileMaxLength,
+		hostnameMaxLength,
+		stats,
+	))
 	fmt.Println()
 }
