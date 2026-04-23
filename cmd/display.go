@@ -28,7 +28,7 @@ func renderTableToString(
 
 	if len(configs) == 0 {
 		th := newTerminalTheme()
-		dim := color.New(color.Faint, color.FgHiWhite).SprintFunc()
+		dim := terminalMutedColor().SprintFunc()
 		var b strings.Builder
 		b.WriteString("\n")
 		fmt.Fprintf(&b, "  %s\n", th.title.Sprint("SSH connections"))
@@ -273,6 +273,13 @@ type terminalTheme struct {
 }
 
 func newTerminalTheme() terminalTheme {
+	if terminalUsesLightBackground() {
+		return newTerminalThemeLight()
+	}
+	return newTerminalThemeDark()
+}
+
+func newTerminalThemeDark() terminalTheme {
 	t := terminalTheme{
 		title:     color.New(color.Bold, color.FgWhite),
 		header:    color.New(color.Bold, color.FgHiWhite),
@@ -292,6 +299,31 @@ func newTerminalTheme() terminalTheme {
 	t.stripeID = color.New(color.Bold, color.FgWhite)
 	t.stripeHost = color.New(color.Bold, color.FgWhite)
 	t.stripePort = color.New(color.Bold, color.FgWhite)
+
+	return t
+}
+
+func newTerminalThemeLight() terminalTheme {
+	stripeBG := color.BgHiBlack
+	t := terminalTheme{
+		title:     color.New(color.Bold, color.FgBlack),
+		header:    color.New(color.Bold, color.FgHiBlack),
+		separator: color.New(color.Faint, color.FgBlack),
+		idx:       color.New(color.Bold, color.FgBlue),
+		alias:     color.New(color.Bold, color.FgMagenta),
+		user:      color.New(color.Bold, color.FgGreen),
+		identity:  color.New(color.Bold, color.FgYellow),
+		host:      color.New(color.Bold, color.FgBlack),
+		port:      color.New(color.Faint, color.FgBlue),
+	}
+
+	t.stripeBg = color.New(stripeBG)
+	t.stripeIdx = color.New(color.Bold, color.FgWhite, stripeBG)
+	t.stripeAlias = color.New(color.Bold, color.FgHiWhite, stripeBG)
+	t.stripeUser = color.New(color.FgHiGreen, stripeBG)
+	t.stripeID = color.New(color.FgHiYellow, stripeBG)
+	t.stripeHost = color.New(color.FgHiWhite, stripeBG)
+	t.stripePort = color.New(color.Faint, color.FgHiWhite, stripeBG)
 
 	return t
 }

@@ -8,7 +8,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/fatih/color"
 	"golang.org/x/term"
 )
 
@@ -79,7 +78,7 @@ func displayStatsLive(
 	received := 0
 	spin := 0
 
-	dim := color.New(color.Faint, color.FgHiWhite).SprintFunc()
+	dim := terminalMutedColor().SprintFunc()
 
 	redraw := func() {
 		mu.Lock()
